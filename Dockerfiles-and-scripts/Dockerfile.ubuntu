@@ -1,0 +1,28 @@
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update && apt install -y \
+    bash \
+    sudo \
+    python3 \
+    openssh-server \
+    vim \
+    iputils-ping \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /var/run/sshd
+RUN ssh-keygen -A
+RUN useradd -m -s /bin/bash ansible && \
+    echo "ansible:ansible" | chpasswd && \
+    usermod -aG sudo ansible
+
+RUN echo "ansible ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ansible && \
+    chmod 440 /etc/sudoers.d/ansible
+
+RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+EXPOSE 22
+
+WORKDIR /home/ansible
+
+
+CMD ["/usr/sbin/sshd", "-D"]

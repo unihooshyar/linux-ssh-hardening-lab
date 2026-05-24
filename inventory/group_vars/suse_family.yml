@@ -1,0 +1,3 @@
+package_manager: zypper
+ntp_package: chrony
+admin_group: wheel

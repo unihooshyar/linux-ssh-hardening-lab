@@ -1,0 +1,49 @@
+services:
+  controller:
+    image: unihooshyar/ansible-controller
+    container_name: controller
+    hostname: controller
+    
+    ports:
+      - "2222:22"
+      - "7681:7681"   # ttyd web terminal
+
+    volumes:
+      - ./ansible.cfg:/home/ansible/ansible.cfg
+      - ./inventory:/home/ansible/inventory
+      - ./playbooks:/home/ansible/playbooks
+      - ./shared:/home/ansible/shared
+      - ./roles:/home/ansible/roles
+
+    working_dir: /home/ansible
+
+    networks:
+      - ansible-net
+
+  
+  ubuntu:
+    image: unihooshyar/managed-node-ubuntu
+    container_name: ubuntu
+    hostname: ubuntu
+    ports:
+      - "2223:22"
+    networks:
+      - ansible-net
+
+  
+
+  rocky:
+    image: unihooshyar/managed-node-rocky
+    container_name: rocky
+    hostname: rocky
+    ports:
+      - "2226:22"
+    
+    networks:
+      - ansible-net
+
+
+
+networks:
+  ansible-net:
+   name: ansible-net

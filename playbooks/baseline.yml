@@ -1,0 +1,8 @@
+
+- name: Baseline configuration
+  hosts: linux
+  serial: 6
+  become: true
+
+  roles:
+    - baseline

@@ -1,0 +1,96 @@
+- name: Ensure groups exists
+  group:
+    name: "{{ item.name }}"
+    state: present
+  loop: "{{ ssh_users }}"
+  when: item.create_user | default(true)
+
+- name: Create users
+  user:
+    name: "{{ item.name }}"
+    group: "{{ item.name }}"
+    state: present
+    create_home: yes
+    shell: /bin/bash
+  loop: "{{ ssh_users }}"
+  when: item.create_user | default(true)
+
+- name: Ensure local SSH directory exists (controller)
+  delegate_to: localhost
+  run_once: true
+  become: true
+  become_user: ansible
+  file:
+    path: /home/ansible/.ssh
+    state: directory
+    owner: ansible
+    group: ansible
+    mode: '0700'
+
+- name: Generate SSH keypairs for users (controller)
+  delegate_to: localhost
+  run_once: true
+  become: true
+  become_user: ansible
+  openssh_keypair:
+    path: "/home/ansible/.ssh/{{ item.name }}"
+    type: ed25519
+    force: false
+    regenerate: never
+  loop: "{{ ssh_users }}"
+
+- name: Ensure .ssh directory exists on nodes
+  file:
+    path: "/home/{{ item.name }}/.ssh"
+    state: directory
+    owner: "{{ item.name }}"
+    group: "{{ item.name }}"
+    mode: '0700'
+  loop: "{{ ssh_users }}"
+  when: item.create_user | default(true)
+
+- name: Install authorized keys
+  authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ lookup('file', '/home/ansible/.ssh/' + item.name + '.pub') }}"
+    state: present
+  loop: "{{ ssh_users }}"
+  when: item.create_user | default(true)
+
+- name: fix authorized_keys permissions
+  file:
+    path: "/home/{{ item.name }}/.ssh/authorized_keys"
+    owner: "{{ item.name }}"
+    group: "{{ item.name }}"
+    mode: '0600'
+  loop: "{{ ssh_users }}"
+  when: item.create_user | default(true)
+
+- name: disable password authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication'
+    line: 'PasswordAuthentication no'
+  notify: reload ssh
+
+- name: Generate SSH client config for users
+  delegate_to: localhost
+  run_once: true
+  become: true
+  become_user: ansible
+  blockinfile:
+    path: /home/ansible/.ssh/config
+    create: yes
+    mode: '0600'
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - SSH USERS"
+    block: |
+      {% for host in groups['all'] %}
+      {% for user in ssh_users %}
+      Host {{ host }}-{{ user.name }}
+          HostName {{ host }}
+          User {{ user.name }}
+          IdentityFile /home/ansible/.ssh/{{ user.name }}
+          IdentitiesOnly yes
+
+      {% endfor %}
+      {% endfor %}

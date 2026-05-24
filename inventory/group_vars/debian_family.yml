@@ -1,0 +1,3 @@
+package_manager: apt
+ntp_package: chrony
+admin_group: sudo

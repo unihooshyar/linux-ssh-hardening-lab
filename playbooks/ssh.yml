@@ -1,0 +1,7 @@
+- name: configure SSH connection for users
+  hosts: linux
+  serial: 6
+  become: true
+
+  roles:
+    - ssh

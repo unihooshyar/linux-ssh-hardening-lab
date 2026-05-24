@@ -1,0 +1,10 @@
+galaxy_info: 
+  role_name: ssh_keys
+  author: Ali Hooshyar
+  description: A role to manage SSH keys for users.
+  company: Ansible Lab
+  license: MIT
+  min_ansible_version: "2.14"
+
+dependencies: []
+  
